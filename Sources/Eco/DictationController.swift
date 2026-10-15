@@ -181,6 +181,7 @@ final class DictationController: ObservableObject {
 
         state = .processing
         let appName = targetApp?.localizedName
+        DispatchQueue.global(qos: .utility).async { AudioRecorder.saveRecording(samples) }
         Task {
             do {
                 let result = try await DictationPipeline.process(samples)

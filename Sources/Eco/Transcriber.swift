@@ -105,11 +105,20 @@ actor Transcriber {
     /// modelo la transcripción sale vacía. El diccionario se aplica después, con reemplazos.
     func transcribe(_ samples: [Float], language: String?) async throws -> String {
         let kit = try await prepare()
+        // Eco divide el audio en tramos de hasta 25 s cortando en las pausas, y transcribe cada uno.
+        // Así Whisper no descarta un tramo entero como "sin voz" (pasaba con dictados largos y pausados).
         var options = Self.options(language: language)
         options.withoutTimestamps = true
-        let results = try await kit.transcribe(audioArray: samples, decodeOptions: options)
-        let text = results.map(\.text).joined(separator: " ")
-        return Self.clean(text)
+        options.chunkingStrategy = ChunkingStrategy.none
+        options.noSpeechThreshold = nil
+
+        var parts: [String] = []
+        for chunk in AudioChunker.chunks(samples) where AudioRecorder.containsSpeech(Array(chunk)) {
+            let results = try await kit.transcribe(audioArray: Array(chunk), decodeOptions: options)
+            let text = Self.clean(results.map(\.text).joined(separator: " "))
+            if !text.isEmpty { parts.append(text) }
+        }
+        return parts.joined(separator: " ")
     }
 
     /// Transcribe un archivo largo (reuniones) y devuelve los fragmentos con sus tiempos.
@@ -161,5 +170,39 @@ actor Transcriber {
         }
         UserDefaults.standard.set(folder.path, forKey: defaultsKey)
         return folder
+    }
+}
+
+/// Divide el audio de un dictado en tramos que caben en una ventana de Whisper (30 s),
+/// cortando en las pausas para no partir palabras.
+enum AudioChunker {
+    static func chunks(_ samples: [Float], sampleRate: Double = AudioRecorder.sampleRate) -> [ArraySlice<Float>] {
+        let maxLength = Int(sampleRate * 25)
+        let minLength = Int(sampleRate * 8)
+        guard samples.count > maxLength else { return [samples[...]] }
+
+        let frame = Int(sampleRate * 0.03)
+        var result: [ArraySlice<Float>] = []
+        var start = 0
+        while samples.count - start > maxLength {
+            // Buscar el tramo más silencioso entre los 8 y los 25 segundos desde el inicio del tramo.
+            var bestCut = start + maxLength
+            var bestEnergy = Float.greatestFiniteMagnitude
+            var position = start + minLength
+            while position + frame <= start + maxLength {
+                var sum: Float = 0
+                for value in samples[position..<(position + frame)] { sum += value * value }
+                // Preferir cortes más tardíos si son igual de silenciosos.
+                if sum <= bestEnergy {
+                    bestEnergy = sum
+                    bestCut = position + frame / 2
+                }
+                position += frame
+            }
+            result.append(samples[start..<bestCut])
+            start = bestCut
+        }
+        result.append(samples[start...])
+        return result
     }
 }
