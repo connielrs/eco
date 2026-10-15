@@ -79,12 +79,15 @@ final class DictationController: ObservableObject {
         let appName = targetApp?.localizedName
         Task {
             do {
-                let result = try await DictationPipeline.process(samples, duration: duration, appName: appName)
-                guard !result.isEmpty else {
+                let result = try await DictationPipeline.process(samples)
+                guard !result.text.isEmpty else {
                     state = .idle
                     return
                 }
-                TextInserter.insert(result)
+                TextInserter.insert(result.text)
+                DictationHistory.shared.add(HistoryEntry(
+                    date: Date(), appName: appName, raw: result.raw, text: result.text, duration: duration
+                ))
                 state = .idle
             } catch {
                 show(error.localizedDescription)
@@ -116,15 +119,20 @@ final class DictationController: ObservableObject {
 
 /// Lo que se hace con el audio de un dictado hasta obtener el texto final.
 enum DictationPipeline {
-    static func process(_ samples: [Float], duration: TimeInterval, appName: String?) async throws -> String {
+    struct Result {
+        var raw: String
+        var text: String
+    }
+
+    static func process(_ samples: [Float]) async throws -> Result {
         let settings = await AppSettings.shared
         let language = await settings.language.whisperCode
         let dictionary = await PersonalDictionary.shared.snapshot
         let transcribed = try await Transcriber.shared.transcribe(samples, language: language)
-        guard !transcribed.isEmpty else { return "" }
+        guard !transcribed.isEmpty else { return Result(raw: "", text: "") }
         let raw = dictionary.apply(to: transcribed)
-        guard await settings.cleanupEnabled else { return raw }
+        guard await settings.cleanupEnabled else { return Result(raw: raw, text: raw) }
         let cleaned = await TextCleaner.clean(raw, vocabulary: dictionary.vocabulary)
-        return dictionary.apply(to: cleaned)
+        return Result(raw: transcribed, text: dictionary.apply(to: cleaned))
     }
 }

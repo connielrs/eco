@@ -59,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusLine.isEnabled = false
         menu.addItem(statusLine)
         menu.addItem(.separator())
+        menu.addItem(item("Historial de dictados…", #selector(openHistory), key: "h"))
         menu.addItem(item("Ajustes…", #selector(openSettings), key: ","))
         menu.addItem(.separator())
         menu.addItem(item("Salir de Eco", #selector(quit), key: "q"))
@@ -76,6 +77,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() { showSettings() }
+
+    @objc private func openHistory() {
+        showWindow(id: "history", title: "Historial de dictados", size: NSSize(width: 620, height: 520)) {
+            HistoryView()
+        }
+    }
 
     @objc private func quit() { NSApp.terminate(nil) }
 
