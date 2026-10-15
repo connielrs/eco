@@ -69,7 +69,9 @@ final class MeetingProcessor {
 
             guard !meeting.transcript.isEmpty else {
                 MeetingStore.shared.update(id) {
-                    $0.summary = "No se detectó voz en la grabación."
+                    $0.summary = $0.systemAudioSilent == true
+                        ? "No se detectó voz en la grabación. El audio del Mac quedó en silencio: revisa que Eco tenga permiso en Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla y audio del sistema."
+                        : "No se detectó voz en la grabación."
                     $0.status = .done
                 }
                 return

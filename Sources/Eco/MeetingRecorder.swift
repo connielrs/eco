@@ -55,11 +55,13 @@ final class MeetingRecorder: ObservableObject {
         guard let meeting = current else { return }
         timer?.invalidate()
         timer = nil
+        let systemPeak = system.peak
         microphone.stop()
         system.stop()
         let duration = Date().timeIntervalSince(meeting.startedAt)
         MeetingStore.shared.update(meeting.id) {
             $0.duration = duration
+            $0.systemAudioSilent = systemPeak < 0.0005
             $0.status = .transcribing
         }
         current = nil

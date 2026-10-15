@@ -111,6 +111,20 @@ struct MeetingDetail: View {
 
                 statusView
 
+                if meeting.systemAudioSilent == true && meeting.status != .recording {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("No se grabó el audio del Mac, solo tu micrófono.", systemImage: "speaker.slash")
+                            .foregroundStyle(.orange)
+                        Text("Revisa que Eco tenga permiso en Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla y audio del sistema.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("Abrir Privacidad y seguridad") {
+                            Permissions.shared.openPrivacyPane("Privacy_AudioCapture")
+                        }
+                        .controlSize(.small)
+                    }
+                }
+
                 if let summary = meeting.summary {
                     VStack(alignment: .leading, spacing: 8) {
                         MarkdownText(markdown: summary)

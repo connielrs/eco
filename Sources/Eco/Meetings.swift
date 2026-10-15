@@ -45,6 +45,8 @@ struct Meeting: Codable, Identifiable, Equatable {
     var summary: String?
     /// Si la persona le cambió el nombre, no se reemplaza por el título que propone el resumen.
     var titleEdited = false
+    /// true si el audio del Mac quedó en silencio (por ejemplo, sin permiso de audio del sistema).
+    var systemAudioSilent: Bool?
 
     var folder: URL { Paths.meetings.appendingPathComponent(id.uuidString, isDirectory: true) }
     var micFile: URL { folder.appendingPathComponent("microfono.caf") }
