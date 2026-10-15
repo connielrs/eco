@@ -14,6 +14,13 @@ enum CommandLineTool {
                 let start = Date()
                 let text = try await Transcriber.shared.transcribe(samples, language: language == "auto" ? nil : language)
                 print("TRANSCRIPCIÓN (\(String(format: "%.2f", Date().timeIntervalSince(start))) s): \(text)")
+                let cleanStart = Date()
+                let cleaned = await TextCleaner.clean(text)
+                print("LIMPIO (\(String(format: "%.2f", Date().timeIntervalSince(cleanStart))) s): \(cleaned)")
+                return 0
+            case "--clean":
+                print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
+                print("LIMPIO: \(await TextCleaner.clean(arguments[1]))")
                 return 0
             default:
                 return usage()
@@ -25,7 +32,7 @@ enum CommandLineTool {
     }
 
     private static func usage() -> Int32 {
-        print("Uso: Eco --transcribe <audio> [es|en|auto]")
+        print("Uso: Eco --transcribe <audio> [es|en|auto] | Eco --clean <texto>")
         return 2
     }
 }

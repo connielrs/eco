@@ -103,8 +103,11 @@ final class DictationController: ObservableObject {
 /// Lo que se hace con el audio de un dictado hasta obtener el texto final.
 enum DictationPipeline {
     static func process(_ samples: [Float], duration: TimeInterval, appName: String?) async throws -> String {
-        let language = await AppSettings.shared.language.whisperCode
-        let text = try await Transcriber.shared.transcribe(samples, language: language)
-        return text
+        let settings = await AppSettings.shared
+        let language = await settings.language.whisperCode
+        let raw = try await Transcriber.shared.transcribe(samples, language: language)
+        guard !raw.isEmpty else { return "" }
+        guard await settings.cleanupEnabled else { return raw }
+        return await TextCleaner.clean(raw)
     }
 }

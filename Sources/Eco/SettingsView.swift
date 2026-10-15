@@ -36,6 +36,14 @@ struct GeneralSettingsView: View {
                     ForEach(DictationLanguage.allCases) { Text($0.label).tag($0) }
                 }
             }
+            Section("Limpieza con Apple Intelligence") {
+                Toggle("Limpiar el texto (puntuación, muletillas y correcciones)", isOn: $settings.cleanupEnabled)
+                if settings.cleanupEnabled, let reason = TextCleaner.unavailableReason {
+                    Text("\(reason) Mientras tanto se pega el texto tal como se transcribió.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
             Section("Modelo de voz") {
                 HStack {
                     Text(model.label)

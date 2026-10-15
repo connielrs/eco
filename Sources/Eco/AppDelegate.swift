@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DictationController.shared.start()
         observeStatus()
         Task { try? await Transcriber.shared.prepare() }
+        TextCleaner.prewarm()
 
         if !Permissions.shared.allGranted {
             showSettings()
