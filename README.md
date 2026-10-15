@@ -14,6 +14,8 @@ Dictado por voz para macOS, de uso personal. Todo se procesa en el Mac: la voz s
 ## Cómo se usa
 
 - **Dictar:** mantén apretada la tecla Fn (o la que elijas en Ajustes), habla y suelta. El texto aparece donde está el cursor.
+- **Dictado fijo:** aprieta Fn dos veces para hablar sin mantenerla. Otra vez Fn para terminar, o Esc para descartar.
+- **Aprende de tus correcciones:** si después de dictar corriges una palabra mal transcrita, Eco la agrega sola al diccionario. Funciona en apps que dejan leer su texto (Notas, Mail, Mensajes); en algunas apps web o Electron no.
 - **Reuniones:** en el menú de Eco, "Grabar reunión". Al terminar se transcribe y se resume solo; todo queda en "Reuniones…".
 - **Diccionario:** en Ajustes → Diccionario, agrega nombres y cómo suelen salir mal (por ejemplo "Gurubik" → "Guruvic").
 - **Historial:** en el menú, "Historial de dictados…".

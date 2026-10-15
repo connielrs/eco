@@ -37,6 +37,15 @@ enum CommandLineTool {
                 let summary = try await MeetingSummarizer.summarize(text)
                 print("RESUMEN (\(Int(Date().timeIntervalSince(start))) s, \(text.count) caracteres): \(summary.title ?? "-")\n\(summary.markdown)")
                 return 0
+            case "--test-learn":
+                // Eco --test-learn "<texto pegado>" "<texto editado>"
+                if let (wrong, right) = CorrectionLearner.correction(from: path, to: arguments[2]),
+                   await CorrectionLearner.isWorthLearning(wrong: wrong, right: right, in: arguments[2]) {
+                    print("APRENDE: \(wrong) → \(right)")
+                } else {
+                    print("NO APRENDE")
+                }
+                return 0
             case "--clean":
                 print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
                 print("LIMPIO: \(await TextCleaner.clean(arguments[1]))")

@@ -10,6 +10,8 @@ final class DictationController: ObservableObject {
         case listening
         case processing
         case message(String)
+        /// Aviso positivo (por ejemplo, una palabra aprendida).
+        case notice(String)
     }
 
     @Published private(set) var state: State = .idle
@@ -56,6 +58,22 @@ final class DictationController: ObservableObject {
         hotkey.onCancel = { [weak self] in self?.hotkeyInterrupted() }
         hotkey.onEscape = { [weak self] in self?.escapePressed() }
         hotkey.start()
+
+        CorrectionLearner.shared.onLearned = { [weak self] wrong, right in
+            self?.notify("Aprendí: \(wrong) → \(right)")
+        }
+        CorrectionLearner.shared.start()
+    }
+
+    /// Muestra un aviso positivo solo si no se está dictando.
+    func notify(_ text: String) {
+        guard state == .idle else { return }
+        state = .notice(text)
+        messageTask?.cancel()
+        messageTask = Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            if !Task.isCancelled, case .notice = state { state = .idle }
+        }
     }
 
     private func hotkeyPressed() {
@@ -118,6 +136,7 @@ final class DictationController: ObservableObject {
 
     private func begin() {
         guard state != .processing else { return }
+        CorrectionLearner.shared.check()
         guard isEnabled else {
             show("Grabando reunión: el dictado está en pausa")
             return
@@ -169,6 +188,7 @@ final class DictationController: ObservableObject {
                     return
                 }
                 TextInserter.insert(result.text)
+                CorrectionLearner.shared.watch(inserted: result.text)
                 DictationHistory.shared.add(HistoryEntry(
                     date: Date(), appName: appName, raw: result.raw, text: result.text, duration: duration
                 ))

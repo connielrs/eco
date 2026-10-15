@@ -52,6 +52,18 @@ final class PersonalDictionary: ObservableObject {
         entries.append(DictionaryEntry(word: word, soundsLike: soundsLike))
     }
 
+    /// Guarda una corrección: si la palabra ya existe, suma la variante; si no, crea la entrada.
+    func learn(wrong: String, right: String) {
+        if let index = entries.firstIndex(where: { $0.word.caseInsensitiveCompare(right) == .orderedSame }) {
+            let known = entries[index].variants.contains { $0.caseInsensitiveCompare(wrong) == .orderedSame }
+            guard !known else { return }
+            let current = entries[index].soundsLike.trimmingCharacters(in: .whitespaces)
+            entries[index].soundsLike = current.isEmpty ? wrong : current + ", " + wrong
+        } else {
+            entries.append(DictionaryEntry(word: right, soundsLike: wrong))
+        }
+    }
+
     func remove(_ entry: DictionaryEntry) {
         entries.removeAll { $0.id == entry.id }
     }

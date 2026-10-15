@@ -77,6 +77,13 @@ struct FloatingBarView: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white)
                     .lineLimit(1)
+            case .notice(let text):
+                Image(systemName: "sparkles")
+                    .foregroundStyle(.yellow)
+                Text(text)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
             case .idle:
                 EmptyView()
             }
