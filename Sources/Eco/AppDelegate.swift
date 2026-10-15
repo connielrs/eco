@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let statusLine = NSMenuItem(title: "Eco está listo", action: nil, keyEquivalent: "")
     private var windows: [String: NSWindow] = [:]
+    private let floatingBar = FloatingBar()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = buildMenu()
 
         DictationController.shared.start()
+        floatingBar.start()
         observeStatus()
         Task { try? await Transcriber.shared.prepare() }
         TextCleaner.prewarm()

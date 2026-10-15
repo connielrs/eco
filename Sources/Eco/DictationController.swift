@@ -13,7 +13,9 @@ final class DictationController: ObservableObject {
     }
 
     @Published private(set) var state: State = .idle
-    @Published private(set) var level: Float = 0
+    /// Últimos niveles de la voz, para la onda de la barra flotante.
+    @Published private(set) var levels = [Float](repeating: 0, count: DictationController.barCount)
+    static let barCount = 16
 
     private let hotkey = HotkeyMonitor()
     private let recorder = AudioRecorder()
@@ -26,7 +28,7 @@ final class DictationController: ObservableObject {
 
     func start() {
         recorder.onLevel = { [weak self] value in
-            Task { @MainActor in self?.level = value }
+            Task { @MainActor in self?.push(level: value) }
         }
         hotkey.onPress = { [weak self] in self?.begin() }
         hotkey.onRelease = { [weak self] in self?.finish() }
@@ -65,7 +67,7 @@ final class DictationController: ObservableObject {
     private func finish() {
         guard state == .listening else { return }
         let samples = recorder.stop()
-        level = 0
+        levels = [Float](repeating: 0, count: Self.barCount)
         let duration = Date().timeIntervalSince(startedAt)
 
         guard duration >= 0.3, AudioRecorder.containsSpeech(samples) else {
@@ -88,6 +90,18 @@ final class DictationController: ObservableObject {
                 show(error.localizedDescription)
             }
         }
+    }
+
+    /// Solo para generar imágenes de la barra desde la línea de comandos.
+    func preview(_ state: State, levels: [Float]) {
+        self.state = state
+        self.levels = levels
+    }
+
+    private func push(level: Float) {
+        guard state == .listening else { return }
+        levels.removeFirst()
+        levels.append(level)
     }
 
     func show(_ message: String) {
