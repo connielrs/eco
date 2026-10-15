@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -12,8 +13,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Eco")
         statusItem.menu = buildMenu()
 
+        DictationController.shared.start()
+        observeStatus()
+        Task { try? await Transcriber.shared.prepare() }
+
         if !Permissions.shared.allGranted {
             showSettings()
+        }
+    }
+
+    private var observers: [Any] = []
+
+    /// Mantiene la primera línea del menú al día con el estado del modelo y del dictado.
+    private func observeStatus() {
+        observers.append(ModelStatus.shared.$state.sink { [weak self] _ in
+            Task { @MainActor in self?.refreshStatus() }
+        })
+        observers.append(DictationController.shared.$state.sink { [weak self] _ in
+            Task { @MainActor in self?.refreshStatus() }
+        })
+    }
+
+    private func refreshStatus() {
+        let model = ModelStatus.shared
+        switch DictationController.shared.state {
+        case .listening:
+            setStatus("Escuchando…")
+        case .processing:
+            setStatus("Procesando…")
+        default:
+            if model.state == .ready {
+                let key = AppSettings.shared.hotkey.label
+                setStatus("Listo. Mantén \(key) para dictar")
+            } else {
+                setStatus(model.label)
+            }
         }
     }
 

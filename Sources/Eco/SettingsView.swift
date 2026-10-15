@@ -14,6 +14,7 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var model = ModelStatus.shared
 
     var body: some View {
         Form {
@@ -21,8 +22,31 @@ struct GeneralSettingsView: View {
                 Picker("Mantén apretada", selection: $settings.hotkey) {
                     ForEach(Hotkey.allCases) { Text($0.label).tag($0) }
                 }
+                if settings.hotkey == .fn && HotkeyMonitor.fnKeyHasSystemAction {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("La tecla Fn tiene otra acción en macOS (emojis o cambio de idioma). En Ajustes del Sistema → Teclado, cambia \"Al presionar la tecla 🌐\" a \"No hacer nada\".")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Button("Abrir ajustes de Teclado") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!)
+                        }
+                    }
+                }
                 Picker("Idioma", selection: $settings.language) {
                     ForEach(DictationLanguage.allCases) { Text($0.label).tag($0) }
+                }
+            }
+            Section("Modelo de voz") {
+                HStack {
+                    Text(model.label)
+                    Spacer()
+                    if case .downloading(let progress) = model.state {
+                        ProgressView(value: progress).frame(width: 120)
+                    } else if model.state == .loading {
+                        ProgressView().controlSize(.small)
+                    } else if case .failed = model.state {
+                        Button("Reintentar") { Task { try? await Transcriber.shared.prepare() } }
+                    }
                 }
             }
             Section("App") {
