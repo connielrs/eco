@@ -82,8 +82,7 @@ final class DictationController: ObservableObject {
                     state = .idle
                     return
                 }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(result, forType: .string)
+                TextInserter.insert(result)
                 state = .idle
             } catch {
                 show(error.localizedDescription)
