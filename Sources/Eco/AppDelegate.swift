@@ -6,6 +6,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let statusLine = NSMenuItem(title: "Eco está listo", action: nil, keyEquivalent: "")
+    private var meetingItem: NSMenuItem!
     private var windows: [String: NSWindow] = [:]
     private let floatingBar = FloatingBar()
 
@@ -35,10 +36,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observers.append(DictationController.shared.$state.sink { [weak self] _ in
             Task { @MainActor in self?.refreshStatus() }
         })
+        observers.append(MeetingRecorder.shared.$elapsed.sink { [weak self] _ in
+            Task { @MainActor in self?.refreshStatus() }
+        })
     }
 
     private func refreshStatus() {
         let model = ModelStatus.shared
+        let recorder = MeetingRecorder.shared
+        if recorder.isRecording {
+            let time = MeetingRecorder.format(recorder.elapsed)
+            meetingItem.title = "Terminar reunión (\(time))"
+            statusItem.button?.image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Grabando reunión")
+            statusItem.button?.contentTintColor = .systemRed
+            setStatus("Grabando reunión · \(time)")
+            return
+        }
+        meetingItem.title = "Grabar reunión"
+        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Eco")
+        statusItem.button?.contentTintColor = nil
         switch DictationController.shared.state {
         case .listening:
             setStatus("Escuchando…")
@@ -59,6 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusLine.isEnabled = false
         menu.addItem(statusLine)
         menu.addItem(.separator())
+        meetingItem = item("Grabar reunión", #selector(toggleMeeting), key: "r")
+        menu.addItem(meetingItem)
+        menu.addItem(.separator())
         menu.addItem(item("Historial de dictados…", #selector(openHistory), key: "h"))
         menu.addItem(item("Ajustes…", #selector(openSettings), key: ","))
         menu.addItem(.separator())
@@ -77,6 +96,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() { showSettings() }
+
+    @objc private func toggleMeeting() {
+        let recorder = MeetingRecorder.shared
+        if recorder.isRecording {
+            recorder.stop()
+        } else {
+            do {
+                try recorder.start()
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "No se pudo grabar la reunión"
+                alert.informativeText = error.localizedDescription
+                NSApp.activate()
+                alert.runModal()
+            }
+        }
+        refreshStatus()
+    }
 
     @objc private func openHistory() {
         showWindow(id: "history", title: "Historial de dictados", size: NSSize(width: 620, height: 520)) {

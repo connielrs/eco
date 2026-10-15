@@ -37,7 +37,11 @@ final class DictationController: ObservableObject {
     }
 
     private func begin() {
-        guard isEnabled, state != .processing else { return }
+        guard state != .processing else { return }
+        guard isEnabled else {
+            show("Grabando reunión: el dictado está en pausa")
+            return
+        }
         guard Permissions.shared.microphone == .authorized else {
             show("Falta el permiso de micrófono")
             return
