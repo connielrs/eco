@@ -90,10 +90,10 @@ enum CommandLineTool {
     private static func renderBar(into folder: URL) {
         let levels: [Float] = [0.1, 0.3, 0.6, 0.9, 0.5, 0.7, 1, 0.4, 0.2, 0.6, 0.8, 0.3, 0.5, 0.2, 0.1, 0.05]
         let states: [(String, DictationController.State)] = [
-            ("escuchando", .listening), ("procesando", .processing), ("aviso", .message("Falta el permiso de micrófono")),
+            ("escuchando", .listening), ("fijo", .listening), ("procesando", .processing), ("aviso", .message("Falta el permiso de micrófono")),
         ]
         for (name, state) in states {
-            DictationController.shared.preview(state, levels: levels)
+            DictationController.shared.preview(state, levels: levels, locked: name == "fijo")
             let renderer = ImageRenderer(content: FloatingBarView().frame(width: 360, height: 64).background(Color.gray.opacity(0.4)))
             renderer.scale = 2
             if let image = renderer.nsImage, let tiff = image.tiffRepresentation,

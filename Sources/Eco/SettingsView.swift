@@ -41,6 +41,9 @@ struct GeneralSettingsView: View {
                 Picker("Mantén apretada", selection: $settings.hotkey) {
                     ForEach(Hotkey.allCases) { Text($0.label).tag($0) }
                 }
+                Text("Apriétala dos veces para dictar sin mantenerla. Otra vez para terminar, o Esc para descartar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if settings.hotkey == .fn && HotkeyMonitor.fnKeyHasSystemAction {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("La tecla Fn tiene otra acción en macOS (emojis o cambio de idioma). En Ajustes del Sistema → Teclado, cambia \"Al presionar la tecla 🌐\" a \"No hacer nada\".")

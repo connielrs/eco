@@ -13,6 +13,8 @@ final class DictationController: ObservableObject {
     }
 
     @Published private(set) var state: State = .idle
+    /// true cuando el dictado quedó fijo con doble toque y no hay que mantener la tecla.
+    @Published private(set) var isLocked = false
     /// Últimos niveles de la voz, para la onda de la barra flotante.
     @Published private(set) var levels = [Float](repeating: 0, count: DictationController.barCount)
     static let barCount = 16
@@ -23,6 +25,25 @@ final class DictationController: ObservableObject {
     private var targetApp: NSRunningApplication?
     private var messageTask: Task<Void, Never>?
 
+    /// Cómo se está usando el atajo en este dictado.
+    private enum HotkeyMode {
+        case none
+        /// Tecla apretada: al soltar se pega, o si fue un toque corto se espera el segundo.
+        case holding
+        /// Hubo un toque corto: si llega otro pronto, el dictado queda fijo.
+        case waitingSecondTap
+        /// Dictado fijo: el próximo toque lo termina.
+        case locked
+    }
+
+    private var mode: HotkeyMode = .none
+    private var pressedAt = Date()
+    private var secondTapTask: Task<Void, Never>?
+    /// Un toque más corto que esto cuenta como toque (no como mantener apretado).
+    private static let tapDuration: TimeInterval = 0.3
+    /// Tiempo máximo entre los dos toques.
+    private static let doubleTapWindow: Duration = .milliseconds(400)
+
     /// Si es false, el atajo no hace nada (por ejemplo mientras se graba una reunión).
     var isEnabled = true
 
@@ -30,10 +51,69 @@ final class DictationController: ObservableObject {
         recorder.onLevel = { [weak self] value in
             Task { @MainActor in self?.push(level: value) }
         }
-        hotkey.onPress = { [weak self] in self?.begin() }
-        hotkey.onRelease = { [weak self] in self?.finish() }
-        hotkey.onCancel = { [weak self] in self?.cancel() }
+        hotkey.onPress = { [weak self] in self?.hotkeyPressed() }
+        hotkey.onRelease = { [weak self] in self?.hotkeyReleased() }
+        hotkey.onCancel = { [weak self] in self?.hotkeyInterrupted() }
+        hotkey.onEscape = { [weak self] in self?.escapePressed() }
         hotkey.start()
+    }
+
+    private func hotkeyPressed() {
+        switch mode {
+        case .none:
+            begin()
+            if state == .listening {
+                mode = .holding
+                pressedAt = Date()
+            }
+        case .waitingSecondTap:
+            // Segundo toque: el dictado queda fijo. La grabación ya venía corriendo desde el primero.
+            secondTapTask?.cancel()
+            mode = .locked
+            isLocked = true
+        case .locked:
+            resetMode()
+            finish()
+        case .holding:
+            break
+        }
+    }
+
+    private func hotkeyReleased() {
+        guard mode == .holding else { return }
+        if Date().timeIntervalSince(pressedAt) < Self.tapDuration {
+            mode = .waitingSecondTap
+            secondTapTask = Task {
+                try? await Task.sleep(for: Self.doubleTapWindow)
+                guard !Task.isCancelled, mode == .waitingSecondTap else { return }
+                // Fue un toque suelto: no se dicta nada.
+                resetMode()
+                cancel()
+            }
+        } else {
+            resetMode()
+            finish()
+        }
+    }
+
+    /// Se apretó otra tecla junto con el atajo (por ejemplo Fn + flecha): no era un dictado.
+    private func hotkeyInterrupted() {
+        guard mode == .holding || mode == .waitingSecondTap else { return }
+        resetMode()
+        cancel()
+    }
+
+    /// Esc descarta un dictado fijo sin pegar nada.
+    private func escapePressed() {
+        guard mode == .locked else { return }
+        resetMode()
+        cancel()
+    }
+
+    private func resetMode() {
+        secondTapTask?.cancel()
+        mode = .none
+        isLocked = false
     }
 
     private func begin() {
@@ -100,9 +180,10 @@ final class DictationController: ObservableObject {
     }
 
     /// Solo para generar imágenes de la barra desde la línea de comandos.
-    func preview(_ state: State, levels: [Float]) {
+    func preview(_ state: State, levels: [Float], locked: Bool = false) {
         self.state = state
         self.levels = levels
+        self.isLocked = locked
     }
 
     private func push(level: Float) {

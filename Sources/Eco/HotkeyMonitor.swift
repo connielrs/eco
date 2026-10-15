@@ -7,6 +7,8 @@ final class HotkeyMonitor {
     var onRelease: (() -> Void)?
     /// Se llama si mientras se mantiene el atajo se aprieta otra tecla (por ejemplo Fn + flecha).
     var onCancel: (() -> Void)?
+    /// Se llama al apretar Esc (para descartar un dictado fijo).
+    var onEscape: (() -> Void)?
 
     private var monitors: [Any] = []
     private var isDown = false
@@ -35,6 +37,7 @@ final class HotkeyMonitor {
 
     private func handle(_ event: NSEvent) {
         if event.type == .keyDown {
+            if event.keyCode == 53 { onEscape?() }
             if isDown {
                 isDown = false
                 onCancel?()

@@ -62,6 +62,11 @@ struct FloatingBarView: View {
         HStack(spacing: 10) {
             switch dictation.state {
             case .listening:
+                if dictation.isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
                 Waveform(levels: dictation.levels)
             case .processing:
                 ProcessingDots()
