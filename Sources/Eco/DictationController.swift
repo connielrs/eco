@@ -22,6 +22,7 @@ final class DictationController: ObservableObject {
     static let barCount = 16
 
     private let hotkey = HotkeyMonitor()
+    var isInterceptingFn: Bool { hotkey.isIntercepting }
     private let recorder = AudioRecorder()
     private var startedAt = Date()
     private var targetApp: NSRunningApplication?
