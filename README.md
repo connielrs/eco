@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/img/logo-oscuro.png" width="128" alt="Logo de Eco">
+</p>
+
 # Eco
 
 Dictado por voz para macOS, de uso personal. Todo se procesa en el Mac: la voz se transcribe con WhisperKit y el texto se limpia con Apple Intelligence (Foundation Models).

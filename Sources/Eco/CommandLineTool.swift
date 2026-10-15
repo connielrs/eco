@@ -56,6 +56,11 @@ enum CommandLineTool {
                 let text = try await transcriber.transcribe(samples, language: "es")
                 print("[\(arguments[2])] \(String(format: "%.2f", Date().timeIntervalSince(start))) s: \(text)")
                 return 0
+            case "--render-iconset":
+                // Eco --render-iconset <carpeta.iconset> [dark|light]
+                let style = AppIconStyle(rawValue: arguments.count > 2 ? arguments[2] : "dark") ?? .dark
+                try await MainActor.run { try EcoIcon.writeIconset(style, to: URL(fileURLWithPath: path)) }
+                return 0
             case "--clean":
                 print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
                 let dictionary = await PersonalDictionary.shared.snapshot

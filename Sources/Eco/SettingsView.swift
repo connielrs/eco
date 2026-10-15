@@ -85,6 +85,32 @@ struct GeneralSettingsView: View {
                     }
                 }
             }
+            Section("Ícono") {
+                HStack(spacing: 18) {
+                    ForEach(AppIconStyle.allCases) { style in
+                        Button {
+                            settings.iconStyle = style
+                        } label: {
+                            VStack(spacing: 6) {
+                                Image(nsImage: EcoIcon.appIcon(style, size: 128))
+                                    .resizable()
+                                    .frame(width: 64, height: 64)
+                                    .padding(4)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .strokeBorder(Color.accentColor, lineWidth: settings.iconStyle == style ? 2.5 : 0)
+                                    )
+                                Text(style.label)
+                                    .font(.caption)
+                                    .foregroundStyle(settings.iconStyle == style ? .primary : .secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+            }
             Section("App") {
                 Toggle("Abrir Eco al iniciar sesión", isOn: $settings.launchAtLogin)
             }

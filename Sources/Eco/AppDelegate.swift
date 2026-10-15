@@ -12,9 +12,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Eco")
+        statusItem.button?.image = EcoIcon.menuBarImage()
         statusItem.menu = buildMenu()
 
+        // El ícono claro es personalizado: se vuelve a poner por si la app se reinstaló.
+        if AppSettings.shared.iconStyle == .light { EcoIcon.apply(.light) }
         DictationController.shared.start()
         MeetingRecorder.shared.onFinished = { id in MeetingProcessor.shared.enqueue(id) }
         MeetingProcessor.shared.resumePending()
@@ -55,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         meetingItem.title = "Grabar reunión"
-        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Eco")
+        statusItem.button?.image = EcoIcon.menuBarImage()
         statusItem.button?.contentTintColor = nil
         switch DictationController.shared.state {
         case .listening:

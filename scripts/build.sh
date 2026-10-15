@@ -11,7 +11,10 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/Eco" "$APP/Contents/MacOS/Eco"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-[ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
+# Ícono de la app: se dibuja con el mismo código de la app (estilo oscuro, el que viene por defecto).
+ICONSET=$(mktemp -d)/AppIcon.iconset
+"$BIN_DIR/Eco" --render-iconset "$ICONSET" dark
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 for bundle in "$BIN_DIR"/*.bundle; do
   [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/"
 done

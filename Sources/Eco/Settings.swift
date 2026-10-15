@@ -83,6 +83,13 @@ final class AppSettings: ObservableObject {
             Task { await Transcriber.shared.switchModel(to: variant) }
         }
     }
+    @Published var iconStyle: AppIconStyle {
+        didSet {
+            defaults.set(iconStyle.rawValue, forKey: "iconStyle")
+            let style = iconStyle
+            Task { @MainActor in EcoIcon.apply(style) }
+        }
+    }
     @Published var cleanupEnabled: Bool {
         didSet { defaults.set(cleanupEnabled, forKey: "cleanupEnabled") }
     }
@@ -94,6 +101,7 @@ final class AppSettings: ObservableObject {
         hotkey = Hotkey(rawValue: defaults.string(forKey: "hotkey") ?? "") ?? .fn
         language = DictationLanguage(rawValue: defaults.string(forKey: "language") ?? "") ?? .spanish
         cleanupEnabled = defaults.object(forKey: "cleanupEnabled") as? Bool ?? true
+        iconStyle = AppIconStyle(rawValue: defaults.string(forKey: "iconStyle") ?? "") ?? .dark
         voiceModel = VoiceModel(rawValue: defaults.string(forKey: "voiceModel") ?? "") ?? .fast
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
