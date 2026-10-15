@@ -191,7 +191,8 @@ final class DictationController: ObservableObject {
                 TextInserter.insert(result.text)
                 CorrectionLearner.shared.watch(inserted: result.text)
                 DictationHistory.shared.add(HistoryEntry(
-                    date: Date(), appName: appName, raw: result.raw, text: result.text, duration: duration
+                    date: Date(), appName: appName, raw: result.raw, text: result.text, duration: duration,
+                    transcribeSeconds: result.transcribeSeconds, cleanSeconds: result.cleanSeconds
                 ))
                 state = .idle
             } catch {
@@ -228,17 +229,27 @@ enum DictationPipeline {
     struct Result {
         var raw: String
         var text: String
+        var transcribeSeconds: Double = 0
+        var cleanSeconds: Double = 0
     }
 
     static func process(_ samples: [Float]) async throws -> Result {
         let settings = await AppSettings.shared
         let language = await settings.language.whisperCode
         let dictionary = await PersonalDictionary.shared.snapshot
+        let transcribeStart = Date()
         let transcribed = try await Transcriber.shared.transcribe(samples, language: language)
+        let transcribeSeconds = Date().timeIntervalSince(transcribeStart)
         guard !transcribed.isEmpty else { return Result(raw: "", text: "") }
         let raw = dictionary.apply(to: transcribed)
-        guard await settings.cleanupEnabled else { return Result(raw: raw, text: raw) }
+        guard await settings.cleanupEnabled else {
+            return Result(raw: raw, text: raw, transcribeSeconds: transcribeSeconds)
+        }
+        let cleanStart = Date()
         let cleaned = await TextCleaner.clean(raw, vocabulary: dictionary.vocabulary)
-        return Result(raw: transcribed, text: dictionary.apply(to: cleaned))
+        return Result(
+            raw: transcribed, text: dictionary.apply(to: cleaned),
+            transcribeSeconds: transcribeSeconds, cleanSeconds: Date().timeIntervalSince(cleanStart)
+        )
     }
 }

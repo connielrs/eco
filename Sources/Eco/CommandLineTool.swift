@@ -48,7 +48,11 @@ enum CommandLineTool {
                 return 0
             case "--clean":
                 print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
-                print("LIMPIO: \(await TextCleaner.clean(arguments[1]))")
+                let dictionary = await PersonalDictionary.shared.snapshot
+                let start = Date()
+                let raw = dictionary.apply(to: arguments[1])
+                let cleaned = dictionary.apply(to: await TextCleaner.clean(raw, vocabulary: dictionary.vocabulary))
+                print("LIMPIO (\(String(format: "%.2f", Date().timeIntervalSince(start))) s, IA: \(TextCleaner.needsCleanup(raw) ? "sí" : "no")): \(cleaned)")
                 return 0
             default:
                 return usage()

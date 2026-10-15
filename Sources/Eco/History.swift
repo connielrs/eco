@@ -10,6 +10,9 @@ struct HistoryEntry: Codable, Identifiable, Equatable {
     /// El texto que se pegó.
     var text: String
     var duration: TimeInterval
+    /// Segundos que tardó en transcribir y en limpiar (para revisar la velocidad).
+    var transcribeSeconds: Double?
+    var cleanSeconds: Double?
 }
 
 /// Historial de dictados, guardado en el Mac.
@@ -116,6 +119,11 @@ struct HistoryRow: View {
                     if let app = entry.appName {
                         Text("·")
                         Text(app)
+                    }
+                    if let transcribe = entry.transcribeSeconds {
+                        Text("·")
+                        Text(String(format: "%.1f s", transcribe + (entry.cleanSeconds ?? 0)))
+                            .help(String(format: "Transcripción %.1f s · Limpieza %.1f s", transcribe, entry.cleanSeconds ?? 0))
                     }
                     if entry.raw != entry.text {
                         Text("·")

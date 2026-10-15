@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 
 /// Pega texto donde está el cursor, en la app que esté al frente.
 @MainActor
@@ -11,6 +12,7 @@ enum TextInserter {
     ].map { NSPasteboard.PasteboardType($0) }
 
     static func insert(_ text: String) {
+        let text = needsLeadingSpace() ? " " + text : text
         let pasteboard = NSPasteboard.general
         let saved = snapshot(pasteboard)
 
@@ -35,6 +37,38 @@ enum TextInserter {
     static func copy(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    /// Si justo antes del cursor hay una letra o un punto (por ejemplo, el dictado anterior),
+    /// hay que separar con un espacio para que no quede "solo.Y ahora". Se lee con Accesibilidad;
+    /// si la app no lo permite, no se agrega nada.
+    private static func needsLeadingSpace() -> Bool {
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.2)
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID()
+        else { return false }
+        let element = focused as! AXUIElement
+        AXUIElementSetMessagingTimeout(element, 0.2)
+
+        var rangeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success,
+              let rangeValue, CFGetTypeID(rangeValue) == AXValueGetTypeID()
+        else { return false }
+        var range = CFRange()
+        guard AXValueGetValue(rangeValue as! AXValue, .cfRange, &range), range.location > 0 else { return false }
+
+        // Pedir solo el carácter anterior al cursor.
+        var previousRange = CFRange(location: range.location - 1, length: 1)
+        guard let previousValue = AXValueCreate(.cfRange, &previousRange) else { return false }
+        var previous: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            element, kAXStringForRangeParameterizedAttribute as CFString, previousValue, &previous
+        ) == .success, let character = (previous as? String)?.last else { return false }
+
+        if character.isWhitespace || character.isNewline { return false }
+        return !"([{¿¡\"'“‘/@#-".contains(character)
     }
 
     private static func snapshot(_ pasteboard: NSPasteboard) -> [NSPasteboardItem] {
