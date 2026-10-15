@@ -265,7 +265,32 @@ enum TextCleaner {
             of: #"(?<!\.)\.\s+(\p{Ll})"#, with: ", $1", options: .regularExpression
         )
         result = result.replacingOccurrences(of: #",\s*,"#, with: ",", options: .regularExpression)
-        return result
+        return lowercaseMidSentence(result)
+    }
+
+    /// Palabras comunes que Whisper a veces escribe con mayúscula en medio de una frase
+    /// ("de la aplicación Por las transcripciones").
+    private static let commonWords: Set<String> = [
+        "por", "para", "pero", "y", "o", "que", "la", "el", "los", "las", "de", "del", "en", "con", "como",
+        "más", "si", "no", "lo", "le", "me", "te", "se", "eso", "esto", "esa", "ese", "ahora", "entonces",
+        "bueno", "ya", "igual", "porque", "cuando", "donde", "un", "una", "a", "al", "es", "está", "era",
+        "yo", "tú", "mi", "tu", "su", "nos", "pues", "también", "así", "aunque", "sin", "sobre", "hasta",
+    ]
+
+    /// Pasa a minúscula esas palabras cuando no van después de un punto, signo o salto de línea.
+    static func lowercaseMidSentence(_ text: String) -> String {
+        var words = text.components(separatedBy: " ")
+        for index in words.indices.dropFirst() {
+            let word = words[index]
+            guard let first = word.first, first.isUppercase else { continue }
+            let previous = words[index - 1]
+            if let last = previous.last, ".?!:…\n\"".contains(last) || previous.isEmpty { continue }
+            let core = word.trimmingCharacters(in: .punctuationCharacters).lowercased()
+            if commonWords.contains(core) {
+                words[index] = first.lowercased() + word.dropFirst()
+            }
+        }
+        return words.joined(separator: " ")
     }
 
     /// Muletillas y señales de corrección que justifican pasar el texto por la IA.
@@ -303,7 +328,7 @@ enum TextCleaner {
 
     /// Formato mínimo sin IA: mayúscula inicial y punto final si falta.
     static func lightFormat(_ text: String) -> String {
-        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result = lowercaseMidSentence(text.trimmingCharacters(in: .whitespacesAndNewlines))
         guard let first = result.first else { return result }
         result = first.uppercased() + result.dropFirst()
         if let last = result.last, last.isLetter || last.isNumber, result.split(separator: " ").count > 3 {
