@@ -70,8 +70,11 @@ final class HotkeyMonitor {
 
     /// macOS puede usar la tecla Fn para abrir los emojis o cambiar el idioma del teclado.
     /// Para dictar con Fn conviene que esté en "No hacer nada".
+    /// Si el valor no existe, macOS usa su acción por defecto (emojis o cambio de idioma).
     static var fnKeyHasSystemAction: Bool {
-        let value = UserDefaults(suiteName: "com.apple.HIToolbox")?.integer(forKey: "AppleFnUsageType") ?? 0
+        guard let value = UserDefaults(suiteName: "com.apple.HIToolbox")?.object(forKey: "AppleFnUsageType") as? Int else {
+            return true
+        }
         return value != 0
     }
 }

@@ -17,9 +17,26 @@ struct SettingsView: View {
 struct GeneralSettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var model = ModelStatus.shared
+    @ObservedObject private var permissions = Permissions.shared
 
     var body: some View {
         Form {
+            if !permissions.allGranted {
+                Section("Para empezar, da estos permisos") {
+                    PermissionRow(
+                        title: "Micrófono",
+                        detail: "Para escuchar lo que dictas.",
+                        granted: permissions.microphone == .authorized,
+                        action: permissions.requestMicrophone
+                    )
+                    PermissionRow(
+                        title: "Accesibilidad",
+                        detail: "Para detectar el atajo y pegar el texto en cualquier app.",
+                        granted: permissions.accessibility,
+                        action: permissions.requestAccessibility
+                    )
+                }
+            }
             Section("Dictado") {
                 Picker("Mantén apretada", selection: $settings.hotkey) {
                     ForEach(Hotkey.allCases) { Text($0.label).tag($0) }
@@ -64,6 +81,7 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { permissions.startWatching() }
     }
 }
 
