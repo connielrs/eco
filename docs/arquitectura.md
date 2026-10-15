@@ -79,7 +79,7 @@ Después de pegar, `CorrectionLearner` recuerda el campo de texto y lo vuelve a 
 ## Flujo de una reunión
 
 ```
-Grabar reunión ──► MicrophoneFileRecorder: tu micrófono, con cancelación de eco ──► microfono.caf
+Grabar reunión ──► MicrophoneFileRecorder: tu micrófono ──► microfono.caf
                └─► SystemAudioRecorder: audio del Mac (process tap de Core Audio) ──► sistema.caf
 Terminar       ──► MeetingProcessor
                      ├─ transcribe cada archivo con su propio modelo cargado
@@ -89,8 +89,10 @@ Terminar       ──► MeetingProcessor
 ```
 
 - **Audio del Mac sin bot:** `SystemAudioRecorder` crea un *process tap* de Core Audio sobre la mezcla de salida del sistema y un dispositivo agregado privado para leerlo. Pide el permiso de "audio del sistema" (`NSAudioCaptureUsageDescription`).
-- **Eco de los parlantes:** el micrófono usa el procesamiento de voz de macOS (cancelación de eco). Además, si una línea del micrófono se parece mucho a una de "Otros" en el mismo momento, se descarta.
-- **Formato:** AAC dentro de CAF, unos 30 MB por hora, y el archivo sigue siendo legible si la app se cierra de golpe. Al abrir Eco se retoman las reuniones que quedaron a medio procesar.
+- **Micrófono sin motor de audio:** el micrófono de las reuniones se graba con `AVAudioRecorder`. `AVAudioEngine` (con o sin cancelación de eco) abre también la salida de los parlantes, y eso deja en silencio la captura del audio del Mac.
+- **Eco de los parlantes:** sin cancelación de eco, el micrófono capta lo que suena por los parlantes. Si una línea del micrófono se parece mucho a una de "Otros" en el mismo momento, se descarta.
+- **Silencio inventado:** Whisper a veces escribe "Gracias." en cada tramo de silencio; las frases cortas repetidas tres o más veces seguidas se quitan. Si el audio del Mac quedó en silencio, la reunión avisa y ofrece abrir el permiso de audio del sistema.
+- **Formato:** AAC mono a 16 kHz dentro de CAF, unos 15 MB por hora, y el archivo sigue siendo legible si la app se cierra de golpe. Al abrir Eco se retoman las reuniones que quedaron a medio procesar.
 - **Instancia aparte del modelo:** las reuniones usan otra copia del modelo de voz, para que procesar una reunión larga no bloquee los dictados. Esa copia se libera al terminar.
 - **Resumen por partes:** el modelo de Apple tiene una ventana de contexto chica, así que las reuniones largas se resumen en partes de unos 5.000 caracteres y después se juntan las notas.
 
