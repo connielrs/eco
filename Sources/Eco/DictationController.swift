@@ -105,9 +105,12 @@ enum DictationPipeline {
     static func process(_ samples: [Float], duration: TimeInterval, appName: String?) async throws -> String {
         let settings = await AppSettings.shared
         let language = await settings.language.whisperCode
-        let raw = try await Transcriber.shared.transcribe(samples, language: language)
-        guard !raw.isEmpty else { return "" }
+        let dictionary = await PersonalDictionary.shared.snapshot
+        let transcribed = try await Transcriber.shared.transcribe(samples, language: language)
+        guard !transcribed.isEmpty else { return "" }
+        let raw = dictionary.apply(to: transcribed)
         guard await settings.cleanupEnabled else { return raw }
-        return await TextCleaner.clean(raw)
+        let cleaned = await TextCleaner.clean(raw, vocabulary: dictionary.vocabulary)
+        return dictionary.apply(to: cleaned)
     }
 }

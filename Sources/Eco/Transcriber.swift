@@ -88,16 +88,13 @@ actor Transcriber {
 
     var isReady: Bool { kit != nil }
 
-    /// Transcribe audio de 16 kHz. `vocabulary` son palabras del diccionario que ayudan a Whisper.
-    func transcribe(_ samples: [Float], language: String?, vocabulary: [String] = []) async throws -> String {
+    /// Transcribe audio de 16 kHz.
+    /// No se le pasan las palabras del diccionario como pista (promptTokens): con WhisperKit 0.18 y este
+    /// modelo la transcripción sale vacía. El diccionario se aplica después, con reemplazos.
+    func transcribe(_ samples: [Float], language: String?) async throws -> String {
         let kit = try await prepare()
         var options = Self.options(language: language)
         options.withoutTimestamps = true
-        if !vocabulary.isEmpty, let tokenizer = kit.tokenizer {
-            let prompt = " " + vocabulary.joined(separator: ", ") + "."
-            options.promptTokens = tokenizer.encode(text: prompt)
-                .filter { $0 < tokenizer.specialTokens.specialTokenBegin }
-        }
         let results = try await kit.transcribe(audioArray: samples, decodeOptions: options)
         let text = results.map(\.text).joined(separator: " ")
         return Self.clean(text)

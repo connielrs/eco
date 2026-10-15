@@ -5,6 +5,8 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsView()
                 .tabItem { Label("General", systemImage: "gearshape") }
+            DictionaryView()
+                .tabItem { Label("Diccionario", systemImage: "character.book.closed") }
             PermissionsView()
                 .tabItem { Label("Permisos", systemImage: "lock.shield") }
         }

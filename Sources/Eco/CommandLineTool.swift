@@ -11,11 +11,15 @@ enum CommandLineTool {
             switch arguments[0] {
             case "--transcribe":
                 let samples = try AudioProcessor.loadAudioAsFloatArray(fromPath: path)
+                let dictionary = await PersonalDictionary.shared.snapshot
                 let start = Date()
-                let text = try await Transcriber.shared.transcribe(samples, language: language == "auto" ? nil : language)
-                print("TRANSCRIPCIÓN (\(String(format: "%.2f", Date().timeIntervalSince(start))) s): \(text)")
+                let transcribed = try await Transcriber.shared.transcribe(
+                    samples, language: language == "auto" ? nil : language
+                )
+                let text = dictionary.apply(to: transcribed)
+                print("TRANSCRIPCIÓN (\(String(format: "%.2f", Date().timeIntervalSince(start))) s): \(transcribed)")
                 let cleanStart = Date()
-                let cleaned = await TextCleaner.clean(text)
+                let cleaned = dictionary.apply(to: await TextCleaner.clean(text, vocabulary: dictionary.vocabulary))
                 print("LIMPIO (\(String(format: "%.2f", Date().timeIntervalSince(cleanStart))) s): \(cleaned)")
                 return 0
             case "--clean":
