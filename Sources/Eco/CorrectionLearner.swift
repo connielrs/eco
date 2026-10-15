@@ -111,7 +111,7 @@ final class CorrectionLearner {
 
         let oldSpan = Array(old[prefix..<(old.count - suffix)])
         let newSpan = Array(new[prefix..<(new.count - suffix)])
-        // Un solo cambio chico: hasta 3 palabras que pasan a ser 1 o 2 (por ejemplo "Guru vic" → "Guruvic").
+        // Un solo cambio chico: hasta 3 palabras que pasan a ser 1 o 2 (por ejemplo "Kuber netes" → "Kubernetes").
         guard (1...3).contains(oldSpan.count), (1...2).contains(newSpan.count) else { return nil }
 
         let wrong = oldSpan.joined(separator: " ")
@@ -129,8 +129,8 @@ final class CorrectionLearner {
     }
 
     /// Evita aprender cambios de estilo ("cositas" → "cosas"). Se aprende si lo transcrito no es una
-    /// palabra real ("Kurao"), o si la corrección es un nombre propio: con mayúscula en medio de la frase
-    /// ("Connie" → "Coni", "cloud code" → "Claude Code"). Al inicio de una frase la mayúscula no cuenta,
+    /// palabra real ("Cubernetes"), o si la corrección es un nombre propio: con mayúscula en medio de la frase
+    /// ("Jon" → "John", "post gres" → "Postgres"). Al inicio de una frase la mayúscula no cuenta,
     /// para no aprender cosas como "Ya" → "Yo".
     static func isWorthLearning(wrong: String, right: String, in edited: String) -> Bool {
         let wrongIsReal = wrong.split(separator: " ").allSatisfy { isRealWord(String($0)) }

@@ -74,7 +74,7 @@ Si Apple Intelligence no está disponible, se pega la transcripción con el form
 
 ### Aprendizaje de correcciones
 
-Después de pegar, `CorrectionLearner` recuerda el campo de texto y lo vuelve a leer al cambiar de app, al empezar otro dictado o cada 15 segundos, durante 3 minutos. Si encuentra un solo cambio chico y parecido (por ejemplo "Kurao" → "Curao"), lo agrega al diccionario. No aprende cambios de tildes ni de mayúsculas, que dependen del contexto, ni cambios de estilo entre palabras reales ("cositas" → "cosas"). Sí aprende si la palabra original no existe en español ni en inglés, o si la corrección es un nombre propio en medio de la frase. Solo funciona en apps que dejan leer su texto con Accesibilidad.
+Después de pegar, `CorrectionLearner` recuerda el campo de texto y lo vuelve a leer al cambiar de app, al empezar otro dictado o cada 15 segundos, durante 3 minutos. Si encuentra un solo cambio chico y parecido (por ejemplo "Cubernetes" → "Kubernetes"), lo agrega al diccionario. No aprende cambios de tildes ni de mayúsculas, que dependen del contexto, ni cambios de estilo entre palabras reales ("cositas" → "cosas"). Sí aprende si la palabra original no existe en español ni en inglés, o si la corrección es un nombre propio en medio de la frase. Solo funciona en apps que dejan leer su texto con Accesibilidad.
 
 ## Flujo de una reunión
 

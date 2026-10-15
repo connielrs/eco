@@ -26,19 +26,10 @@ final class PersonalDictionary: ObservableObject {
     private let store = JSONStore<[DictionaryEntry]>("dictionary.json")
 
     private init() {
-        entries = store.load() ?? Self.starter
-        if store.load() == nil { store.save(entries) }
+        // El diccionario parte vacío; cada persona agrega sus propias palabras.
+        entries = store.load() ?? []
     }
 
-    /// Palabras de partida, para que Eco conozca los nombres de siempre desde el primer día.
-    private static let starter: [DictionaryEntry] = [
-        DictionaryEntry(word: "Guruvic", soundsLike: "Gurubik, Guru Vic, Gurubic, Guruvik"),
-        DictionaryEntry(word: "Curao", soundsLike: "Kurao"),
-        DictionaryEntry(word: "Yutori", soundsLike: "Utori, Llutori"),
-        DictionaryEntry(word: "Coni", soundsLike: "Connie, Cony, Conni"),
-        DictionaryEntry(word: "Innovación Austral", soundsLike: ""),
-        DictionaryEntry(word: "Linear", soundsLike: ""),
-    ]
 
     var vocabulary: [String] {
         entries.map { $0.word.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }

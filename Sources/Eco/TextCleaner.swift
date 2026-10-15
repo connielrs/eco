@@ -33,7 +33,7 @@ enum TextCleaner {
     - Pon puntuación, tildes y mayúsculas correctas. Usa comas donde naturalmente hay una pausa: \
     después de "ya", "bueno", "entonces" o "o sea" al inicio, entre ideas y en enumeraciones.
     - Usa comillas cuando la persona cita textualmente lo que alguien dijo o escribió, o cuando \
-    habla de una palabra como palabra. Ejemplo: me corrigió "hartos" por "altos".
+    habla de una palabra como palabra. Ejemplo: escribió "haya" en vez de "halla".
     - Elimina muletillas y sonidos de relleno: eh, em, mm, este, o sea (cuando es relleno), \
     como que (cuando es relleno), um, uh, like, you know.
     - Aplica las correcciones que hace la persona al hablar. Ejemplo: "el martes, no, perdón, \
@@ -53,8 +53,8 @@ enum TextCleaner {
     Salida: ¿Me puedes mandar el link del meeting de mañana?
     Entrada: escribe un correo para el equipo diciendo que mañana no hay daily
     Salida: Escribe un correo para el equipo diciendo que mañana no hay daily.
-    Entrada: ya entonces lo que pasa es que me puso fati en vez de falta y eso no se entiende
-    Salida: Ya, entonces lo que pasa es que me puso "fati" en vez de "falta", y eso no se entiende.
+    Entrada: ya entonces lo que pasa es que escribió casa en vez de caza y eso no se entiende
+    Salida: Ya, entonces lo que pasa es que escribió "casa" en vez de "caza", y eso no se entiende.
     """
 
     /// Devuelve el texto limpio, o la transcripción con un formato mínimo si no hace falta limpiar

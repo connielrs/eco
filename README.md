@@ -66,7 +66,7 @@ La primera vez que abras Eco:
 
 ### Diccionario
 
-En *Ajustes → Diccionario* se agregan palabras con la forma correcta y, separadas por coma, las formas en que suelen transcribirse mal. Por ejemplo, la palabra `Guruvic` con las variantes `Gurubik, Guru Vic`. Las variantes se reemplazan siempre por la palabra correcta.
+En *Ajustes → Diccionario* se agregan palabras con la forma correcta y, separadas por coma, las formas en que suelen transcribirse mal. Por ejemplo, la palabra `Kubernetes` con las variantes `Cubernetes, Kuber netes`. Las variantes se reemplazan siempre por la palabra correcta.
 
 ## Privacidad
 

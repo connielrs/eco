@@ -18,8 +18,8 @@ struct DictionaryView: View {
                 .foregroundStyle(.secondary)
 
             HStack {
-                TextField("Palabra (ej. Guruvic)", text: $form.newWord)
-                TextField("Se transcribe como (ej. Gurubik, Guru Vic)", text: $form.newSoundsLike)
+                TextField("Palabra (ej. Kubernetes)", text: $form.newWord)
+                TextField("Se transcribe como (ej. Cubernetes, Kuber netes)", text: $form.newSoundsLike)
                 Button("Agregar") {
                     dictionary.add(word: form.newWord, soundsLike: form.newSoundsLike)
                     form.newWord = ""
