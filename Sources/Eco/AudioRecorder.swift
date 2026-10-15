@@ -121,14 +121,14 @@ final class AudioRecorder: @unchecked Sendable {
     }
 
     /// Indica si el audio tiene voz: busca algún tramo de 30 ms con volumen suficiente.
-    static func containsSpeech(_ samples: [Float]) -> Bool {
+    static func containsSpeech(_ samples: [Float], threshold: Float = 0.012) -> Bool {
         let window = Int(sampleRate * 0.03)
         guard samples.count > window else { return false }
         var index = 0
         while index + window <= samples.count {
             var sum: Float = 0
             for value in samples[index..<(index + window)] { sum += value * value }
-            if (sum / Float(window)).squareRoot() > 0.012 { return true }
+            if (sum / Float(window)).squareRoot() > threshold { return true }
             index += window
         }
         return false

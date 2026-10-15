@@ -142,11 +142,47 @@ actor Transcriber {
     }
 
     /// Transcribe un archivo largo (reuniones) y devuelve los fragmentos con sus tiempos.
-    func transcribeFile(at url: URL, language: String?) async throws -> [TranscriptionSegment] {
+    /// Fragmento de una transcripción larga, con tiempos en segundos desde el inicio del archivo.
+    struct TimedSegment {
+        var start: Double
+        var end: Double
+        var text: String
+    }
+
+    /// Transcribe un archivo largo (reuniones). Igual que en los dictados, el audio se divide en tramos
+    /// propios y se transcribe cada uno sin que Whisper pueda descartarlo como "sin voz".
+    func transcribeFile(at url: URL, language: String?) async throws -> [TimedSegment] {
         let kit = try await prepare()
-        let options = Self.options(language: language)
-        let results: [TranscriptionResult] = try await kit.transcribe(audioPath: url.path, decodeOptions: options)
-        return results.flatMap(\.segments)
+        let samples = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
+        var options = Self.options(language: language)
+        options.chunkingStrategy = ChunkingStrategy.none
+        options.noSpeechThreshold = nil
+
+        var result: [TimedSegment] = []
+        for chunk in AudioChunker.chunks(samples) where AudioRecorder.containsSpeech(Array(chunk), threshold: 0.004) {
+            let offset = Double(chunk.startIndex) / AudioRecorder.sampleRate
+            let duration = Double(chunk.count) / AudioRecorder.sampleRate
+            let results = try await kit.transcribe(audioArray: Array(chunk), decodeOptions: options)
+            var segments = results.flatMap(\.segments).compactMap { segment -> TimedSegment? in
+                let text = Self.clean(segment.text)
+                guard !text.isEmpty else { return nil }
+                return TimedSegment(start: offset + Double(segment.start), end: offset + Double(segment.end), text: text)
+            }
+            // A veces, en el modo con tiempos, Whisper devuelve un tramo con voz vacío o casi vacío.
+            // Se reintenta sin tiempos (como en los dictados) y se usa si entrega más texto.
+            let characters = segments.reduce(0) { $0 + $1.text.count }
+            if Double(characters) < duration * 4 {
+                var plain = options
+                plain.withoutTimestamps = true
+                let retry = Self.clean(try await kit.transcribe(audioArray: Array(chunk), decodeOptions: plain)
+                    .map(\.text).joined(separator: " "))
+                if retry.count > characters {
+                    segments = [TimedSegment(start: offset, end: offset + duration, text: retry)]
+                }
+            }
+            result.append(contentsOf: segments)
+        }
+        return result
     }
 
     /// Quita las frases cortas que Whisper repite cuando el audio es silencio ("Gracias. Gracias. Gracias.").

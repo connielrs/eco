@@ -14,16 +14,20 @@ enum MeetingSummarizer {
     private static let chunkSize = 5_000
 
     private static let notesInstructions = """
-    Tomas notas de una parte de una reunión. "Tú" es la persona dueña de las notas y "Otros" \
-    son las demás personas. Escribe en español, en viñetas cortas: los temas tratados, las decisiones \
-    o acuerdos, y las tareas pendientes con quién las hará si se dice. No inventes nada que no esté \
-    en la transcripción. Responde solo con las viñetas.
+    Tomas notas de una parte de una grabación. "Tú" es la persona dueña de las notas y "Otros" \
+    es lo que sonó en el computador (otras personas en una llamada, o un video). Escribe en español, \
+    en viñetas cortas: los temas tratados, las decisiones o acuerdos, y las tareas pendientes con \
+    quién las hará ("Tú" u "Otros"). Cuando alguien en la transcripción dice "yo", se refiere a esa \
+    persona, no a "Tú". No inventes nada que no esté en la transcripción. Responde solo con las viñetas.
     """
 
     private static let summaryInstructions = """
-    Escribes el resumen final de una reunión a partir de notas o de su transcripción. \
-    "Tú" es la persona dueña de las notas y "Otros" son las demás personas. Escribe en español, \
-    claro y breve, sin inventar nada. Usa exactamente este formato en Markdown:
+    Escribes el resumen final de una grabación a partir de notas o de su transcripción. \
+    "Tú" es la persona dueña de las notas y "Otros" es lo que sonó en el computador: otras personas \
+    en una llamada, o un video. Cuando alguien en la transcripción dice "yo", se refiere a esa persona, \
+    no a "Tú". Si no es una conversación con compromisos (por ejemplo, un video o una charla), resume \
+    el contenido y deja Acuerdos y Tareas sin registros. Escribe en español, claro y breve, sin \
+    inventar nada. Usa exactamente este formato en Markdown:
 
     Título: <título corto de la reunión, máximo 6 palabras>
 
@@ -34,7 +38,7 @@ enum MeetingSummarizer {
     - <cada acuerdo o decisión; si no hubo, escribe "- Sin acuerdos registrados">
 
     ## Tareas
-    - <cada tarea, con responsable si se dijo; si no hubo, escribe "- Sin tareas registradas">
+    - <cada tarea comprometida, con responsable (Tú u Otros) si se dijo; si no hubo, escribe "- Sin tareas registradas">
     """
 
     static func summarize(_ transcript: String) async throws -> Summary {
@@ -116,7 +120,10 @@ enum MeetingSummarizer {
                 lines.remove(at: index)
             }
         }
-        let markdown = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        // El modelo a veces repite la viñeta ("- - Sin acuerdos registrados").
+        let markdown = lines.joined(separator: "\n")
+            .replacingOccurrences(of: #"(?m)^(\s*)[-*]\s+[-*]\s+"#, with: "$1- ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         return Summary(title: title?.isEmpty == true ? nil : title, markdown: markdown)
     }
 }

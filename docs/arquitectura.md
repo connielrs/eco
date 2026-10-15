@@ -93,6 +93,8 @@ Terminar       ──► MeetingProcessor
 - **Eco de los parlantes:** sin cancelación de eco, el micrófono capta lo que suena por los parlantes. Si una línea del micrófono se parece mucho a una de "Otros" en el mismo momento, se descarta.
 - **Silencio inventado:** Whisper a veces escribe "Gracias." en cada tramo de silencio; las frases cortas repetidas tres o más veces seguidas se quitan. Si el audio del Mac quedó en silencio, la reunión avisa y ofrece abrir el permiso de audio del sistema.
 - **Formato:** AAC mono a 16 kHz dentro de CAF, unos 15 MB por hora, y el archivo sigue siendo legible si la app se cierra de golpe. Al abrir Eco se retoman las reuniones que quedaron a medio procesar.
+- **Transcripción por tramos:** cada pista se transcribe con los mismos tramos propios de los dictados, con tiempos por frase. Si un tramo con sonido sale vacío (le pasa a Whisper en el modo con tiempos), se reintenta sin tiempos.
+- **Quién habló:** una línea del micrófono se descarta si la mayoría de sus palabras aparecen en lo que sonó en el Mac en ese momento (es eco), y también un "Gracias." suelto mientras sonaba el Mac. El resumen sabe que "Otros" puede ser un video y que un "yo" dentro de la transcripción no es "Tú".
 - **Instancia aparte del modelo:** las reuniones usan otra copia del modelo de voz, para que procesar una reunión larga no bloquee los dictados. Esa copia se libera al terminar.
 - **Resumen por partes:** el modelo de Apple tiene una ventana de contexto chica, así que las reuniones largas se resumen en partes de unos 5.000 caracteres y después se juntan las notas.
 

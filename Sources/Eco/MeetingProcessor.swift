@@ -107,7 +107,7 @@ final class MeetingProcessor {
     }
 
     private func lines(from file: URL, speaker: TranscriptLine.Speaker, language: String?) async throws -> [TranscriptLine] {
-        let segments: [TranscriptionSegment]
+        let segments: [Transcriber.TimedSegment]
         do {
             segments = try await transcriber.transcribeFile(at: file, language: language)
         } catch {
@@ -115,11 +115,7 @@ final class MeetingProcessor {
             NSLog("Eco: no se pudo transcribir \(file.lastPathComponent): \(error)")
             return []
         }
-        let lines = segments.compactMap { segment -> TranscriptLine? in
-            let text = Transcriber.clean(segment.text)
-            guard !text.isEmpty else { return nil }
-            return TranscriptLine(speaker: speaker, start: Double(segment.start), text: text)
-        }
+        let lines = segments.map { TranscriptLine(speaker: speaker, start: $0.start, end: $0.end, text: $0.text) }
         // Whisper a veces repite "Gracias." en cada tramo de silencio: se quitan esas rachas.
         return Transcriber.removeRepeatedRunsIndices(lines.map(\.text)).map { lines[$0] }
     }
@@ -127,10 +123,19 @@ final class MeetingProcessor {
     /// Junta las dos pistas en orden. Si el micrófono captó lo mismo que sonó por los parlantes
     /// (eco sin audífonos), se descarta esa línea del micrófono.
     static func merge(mine: [TranscriptLine], theirs: [TranscriptLine]) -> [TranscriptLine] {
+        // Sin cancelación de eco, el micrófono capta lo que suena por los parlantes. Una línea del
+        // micrófono se descarta si la mayoría de sus palabras aparecen en lo que sonó en el Mac
+        // en ese mismo momento (con un margen, porque los tramos no coinciden exactos).
         let filteredMine = mine.filter { line in
-            !theirs.contains { other in
-                abs(other.start - line.start) < 8 && similarity(line.text, other.text) > 0.5
-            }
+            let end = line.end ?? line.start + 10
+            let nearby = theirs
+                .filter { ($0.end ?? $0.start + 10) >= line.start - 6 && $0.start <= end + 6 }
+                .map(\.text)
+                .joined(separator: " ")
+            // "Gracias." suelto mientras suena el Mac es algo que Whisper inventa desde el eco.
+            let isPhantom = line.text.lowercased().trimmingCharacters(in: .punctuationCharacters.union(.whitespaces)) == "gracias"
+                && theirs.contains { ($0.end ?? $0.start + 10) >= line.start - 1 && $0.start <= end + 1 }
+            return !isPhantom && coverage(of: line.text, in: nearby) < 0.5
         }
         let sorted = (filteredMine + theirs).sorted { $0.start < $1.start }
 
@@ -139,6 +144,7 @@ final class MeetingProcessor {
         for line in sorted {
             if var last = result.last, last.speaker == line.speaker, last.text.count < 600 {
                 last.text += " " + line.text
+                last.end = line.end ?? last.end
                 result[result.count - 1] = last
             } else {
                 result.append(line)
@@ -147,10 +153,16 @@ final class MeetingProcessor {
         return result
     }
 
-    private static func similarity(_ a: String, _ b: String) -> Double {
-        let wordsA = Set(a.lowercased().split { !$0.isLetter && !$0.isNumber })
-        let wordsB = Set(b.lowercased().split { !$0.isLetter && !$0.isNumber })
-        guard !wordsA.isEmpty, !wordsB.isEmpty else { return 0 }
-        return Double(wordsA.intersection(wordsB).count) / Double(min(wordsA.count, wordsB.count))
+    /// Fracción de las palabras de `text` que también aparecen en `reference`.
+    static func coverage(of text: String, in reference: String) -> Double {
+        func words(_ value: String) -> [String] {
+            value.split { !$0.isLetter && !$0.isNumber }.map {
+                $0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "es"))
+            }
+        }
+        let own = words(text)
+        guard !own.isEmpty else { return 0 }
+        let known = Set(words(reference))
+        return Double(own.filter { known.contains($0) }.count) / Double(own.count)
     }
 }

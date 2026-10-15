@@ -12,6 +12,7 @@ struct TranscriptLine: Codable, Equatable, Identifiable {
     var speaker: Speaker
     /// Segundos desde el inicio de la reunión.
     var start: Double
+    var end: Double?
     var text: String
 }
 

@@ -88,6 +88,11 @@ enum CommandLineTool {
                 system.stop()
                 try "pico sistema \(peak)\n".write(to: folder.appendingPathComponent("resultado.txt"), atomically: true, encoding: .utf8)
                 return 0
+            case "--segments":
+                // Eco --segments <audio>: muestra los fragmentos con tiempos, como en las reuniones.
+                let segments = try await Transcriber.shared.transcribeFile(at: URL(fileURLWithPath: path), language: "es")
+                for segment in segments { print(String(format: "%6.1f-%6.1f", segment.start, segment.end), segment.text) }
+                return 0
             case "--clean":
                 print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
                 let dictionary = await PersonalDictionary.shared.snapshot
