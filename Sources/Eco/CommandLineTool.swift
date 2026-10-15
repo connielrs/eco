@@ -73,11 +73,27 @@ enum CommandLineTool {
                 recorder.stop()
                 print("GRABADO: \(path)")
                 return 0
+            case "--record-both":
+                // Eco --record-both <carpeta> [segundos]: graba micrófono y audio del Mac a la vez.
+                let folder = URL(fileURLWithPath: path)
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let seconds = Double(arguments.count > 2 ? arguments[2] : "6") ?? 6
+                let microphone = MicrophoneFileRecorder()
+                let system = SystemAudioRecorder()
+                try system.start(writingTo: folder.appendingPathComponent("sistema.caf"))
+                try microphone.start(writingTo: folder.appendingPathComponent("microfono.caf"))
+                try await Task.sleep(for: .seconds(seconds))
+                let peak = system.peak
+                microphone.stop()
+                system.stop()
+                try "pico sistema \(peak)\n".write(to: folder.appendingPathComponent("resultado.txt"), atomically: true, encoding: .utf8)
+                return 0
             case "--clean":
                 print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
                 let dictionary = await PersonalDictionary.shared.snapshot
                 let start = Date()
-                let raw = dictionary.apply(to: arguments[1])
+                // Mismo filtro que se aplica a lo que entrega Whisper.
+                let raw = dictionary.apply(to: Transcriber.clean(arguments[1]))
                 let cleaned = dictionary.apply(to: await TextCleaner.clean(raw, vocabulary: dictionary.vocabulary))
                 print("LIMPIO (\(String(format: "%.2f", Date().timeIntervalSince(start))) s, IA: \(TextCleaner.needsCleanup(raw) ? "sí" : "no")): \(cleaned)")
                 return 0

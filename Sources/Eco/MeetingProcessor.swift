@@ -115,11 +115,13 @@ final class MeetingProcessor {
             NSLog("Eco: no se pudo transcribir \(file.lastPathComponent): \(error)")
             return []
         }
-        return segments.compactMap { segment in
+        let lines = segments.compactMap { segment -> TranscriptLine? in
             let text = Transcriber.clean(segment.text)
             guard !text.isEmpty else { return nil }
             return TranscriptLine(speaker: speaker, start: Double(segment.start), text: text)
         }
+        // Whisper a veces repite "Gracias." en cada tramo de silencio: se quitan esas rachas.
+        return Transcriber.removeRepeatedRunsIndices(lines.map(\.text)).map { lines[$0] }
     }
 
     /// Junta las dos pistas en orden. Si el micrófono captó lo mismo que sonó por los parlantes

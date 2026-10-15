@@ -149,10 +149,40 @@ actor Transcriber {
         return results.flatMap(\.segments)
     }
 
+    /// Quita las frases cortas que Whisper repite cuando el audio es silencio ("Gracias. Gracias. Gracias.").
+    /// Una frase de hasta 4 palabras repetida 3 veces seguidas o más se elimina completa.
+    static func removeRepeatedRuns(_ parts: [String]) -> [String] {
+        removeRepeatedRunsIndices(parts).map { parts[$0] }
+    }
+
+    /// Índices de las partes que se conservan después de quitar las rachas repetidas.
+    static func removeRepeatedRunsIndices(_ parts: [String]) -> [Int] {
+        func key(_ text: String) -> String {
+            text.lowercased().trimmingCharacters(in: CharacterSet.punctuationCharacters.union(.whitespaces))
+        }
+        var result: [Int] = []
+        var index = 0
+        while index < parts.count {
+            var end = index + 1
+            while end < parts.count, key(parts[end]) == key(parts[index]) { end += 1 }
+            if !(end - index >= 3 && key(parts[index]).split(separator: " ").count <= 4) {
+                result.append(contentsOf: index..<end)
+            }
+            index = end
+        }
+        return result
+    }
+
     static func clean(_ raw: String) -> String {
         var text = raw.replacingOccurrences(of: #"<\|[^|]*\|>"#, with: "", options: .regularExpression)
         text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Separar en frases para quitar las repetidas.
+        var sentences: [String] = []
+        text.enumerateSubstrings(in: text.startIndex..., options: .bySentences) { sentence, _, _, _ in
+            if let sentence = sentence?.trimmingCharacters(in: .whitespaces), !sentence.isEmpty { sentences.append(sentence) }
+        }
+        if sentences.count >= 3 { text = removeRepeatedRuns(sentences).joined(separator: " ") }
         let normalized = text.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: " .!¡"))
         if hallucinations.contains(where: { normalized == $0.trimmingCharacters(in: CharacterSet(charactersIn: " .!¡")) }) {
             return ""

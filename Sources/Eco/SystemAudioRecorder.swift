@@ -119,43 +119,23 @@ final class SystemAudioRecorder: @unchecked Sendable {
     }
 }
 
-/// Graba el micrófono a un archivo durante una reunión, con cancelación de eco
-/// para no captar de nuevo lo que sale por los parlantes.
+/// Graba el micrófono a un archivo durante una reunión.
+///
+/// Usa `AVAudioRecorder` y no `AVAudioEngine`: el motor de audio también abre la salida de los parlantes
+/// y, al hacerlo, la captura del audio del Mac queda en silencio. Por la misma razón no se usa la
+/// cancelación de eco; el eco que capte el micrófono se descarta después, al juntar las dos pistas.
 final class MicrophoneFileRecorder: @unchecked Sendable {
-    private var engine: AVAudioEngine?
-    private var writer: MonoFileWriter?
-    private let fileLock = NSLock()
+    private var recorder: AVAudioRecorder?
 
     func start(writingTo url: URL) throws {
-        let engine = AVAudioEngine()
-        let input = engine.inputNode
-        do {
-            try input.setVoiceProcessingEnabled(true)
-            input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
-        } catch {
-            NSLog("Eco: no se pudo activar la cancelación de eco: \(error)")
-        }
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else { throw EcoError.noMicrophone }
-
-        let writer = try MonoFileWriter(url: url, sourceSampleRate: format.sampleRate, mix: .firstChannel)
-        fileLock.withLock { self.writer = writer }
-        input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
-            guard let self else { return }
-            self.fileLock.withLock { self.writer }?.write(buffer)
-        }
-        engine.prepare()
-        try engine.start()
-        self.engine = engine
+        let recorder = try AVAudioRecorder(url: url, settings: MeetingAudio.fileSettings(sampleRate: 16_000, channels: 1))
+        guard recorder.record() else { throw EcoError.noMicrophone }
+        self.recorder = recorder
     }
 
     func stop() {
-        if let engine {
-            engine.inputNode.removeTap(onBus: 0)
-            engine.stop()
-        }
-        engine = nil
-        fileLock.withLock { writer = nil }
+        recorder?.stop()
+        recorder = nil
     }
 }
 
