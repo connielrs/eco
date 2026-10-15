@@ -29,22 +29,39 @@ final class ModelStatus: ObservableObject {
 
 /// Transcribe audio con WhisperKit dentro del Mac.
 actor Transcriber {
-    static let shared = Transcriber()
+    static let shared = Transcriber(variant: Transcriber.selectedVariant)
     /// Whisper large-v3 turbo comprimido: buena precisión en español e inglés y rápido en Apple Silicon.
-    static let modelVariant = "large-v3-v20240930_turbo_632MB"
+    static let defaultVariant = VoiceModel.fast.variant
+    /// Modelo elegido en Ajustes (rápido o preciso).
+    static var selectedVariant: String {
+        (VoiceModel(rawValue: UserDefaults.standard.string(forKey: "voiceModel") ?? "") ?? .fast).variant
+    }
+    /// Modelo que usa esta instancia.
+    private(set) var modelVariant: String
 
     private var kit: WhisperKit?
     private var loading: Task<WhisperKit, Error>?
     /// Solo la instancia de los dictados muestra su estado en el menú.
     private let reportsStatus: Bool
 
-    init(reportsStatus: Bool = true) {
+    init(reportsStatus: Bool = true, variant: String = Transcriber.defaultVariant) {
         self.reportsStatus = reportsStatus
+        self.modelVariant = variant
     }
 
     /// Libera la memoria del modelo (se usa después de procesar reuniones).
     func unload() {
         kit = nil
+    }
+
+    /// Cambia al modelo elegido en Ajustes; lo descarga si hace falta.
+    func switchModel(to variant: String) async {
+        guard variant != modelVariant else { return }
+        modelVariant = variant
+        kit = nil
+        loading?.cancel()
+        loading = nil
+        _ = try? await prepare()
     }
 
     /// Frases que Whisper inventa cuando el audio es casi silencio.
@@ -69,8 +86,9 @@ actor Transcriber {
         if let loading { return try await loading.value }
 
         let reportsStatus = self.reportsStatus
+        let variant = modelVariant
         let task = Task { () throws -> WhisperKit in
-            let folder = try await Self.modelFolder(reportsStatus: reportsStatus)
+            let folder = try await Self.modelFolder(variant: variant, reportsStatus: reportsStatus)
             if reportsStatus { await MainActor.run { ModelStatus.shared.state = .loading } }
             let config = WhisperKitConfig(
                 modelFolder: folder.path,
@@ -86,6 +104,8 @@ actor Transcriber {
         loading = task
         do {
             let kit = try await task.value
+            // Si mientras cargaba se eligió otro modelo, se descarta este y se carga el nuevo.
+            guard variant == modelVariant else { return try await prepare() }
             self.kit = kit
             loading = nil
             if reportsStatus { await MainActor.run { ModelStatus.shared.state = .ready } }
@@ -154,7 +174,7 @@ actor Transcriber {
     }
 
     /// Carpeta del modelo en el Mac; si no está, lo descarga mostrando el progreso.
-    private static func modelFolder(reportsStatus: Bool) async throws -> URL {
+    private static func modelFolder(variant modelVariant: String, reportsStatus: Bool) async throws -> URL {
         let defaultsKey = "modelFolder.\(modelVariant)"
         if let saved = UserDefaults.standard.string(forKey: defaultsKey) {
             let url = URL(fileURLWithPath: saved)

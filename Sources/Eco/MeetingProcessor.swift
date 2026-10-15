@@ -7,7 +7,7 @@ final class MeetingProcessor {
     static let shared = MeetingProcessor()
 
     /// Instancia aparte del modelo para que procesar una reunión larga no bloquee los dictados.
-    private let transcriber = Transcriber(reportsStatus: false)
+    private var transcriber = Transcriber(reportsStatus: false, variant: Transcriber.selectedVariant)
     private var queue: [UUID] = []
     private var running = false
 
@@ -39,6 +39,10 @@ final class MeetingProcessor {
     private func runQueue() async {
         guard !running else { return }
         running = true
+        // Usar el modelo elegido en Ajustes en ese momento.
+        if await transcriber.modelVariant != Transcriber.selectedVariant {
+            transcriber = Transcriber(reportsStatus: false, variant: Transcriber.selectedVariant)
+        }
         while !queue.isEmpty {
             let id = queue.removeFirst()
             await process(id)

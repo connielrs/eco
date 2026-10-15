@@ -46,6 +46,16 @@ enum CommandLineTool {
                     print("NO APRENDE")
                 }
                 return 0
+            case "--compare":
+                // Eco --compare <audio> <modelo>: transcribe con otro modelo para comparar precisión.
+                let samples = try AudioProcessor.loadAudioAsFloatArray(fromPath: path)
+                let transcriber = Transcriber(reportsStatus: false, variant: arguments[2])
+                try await transcriber.prepare()
+                _ = try await transcriber.transcribe(Array(samples.prefix(16_000 * 3)), language: "es")
+                let start = Date()
+                let text = try await transcriber.transcribe(samples, language: "es")
+                print("[\(arguments[2])] \(String(format: "%.2f", Date().timeIntervalSince(start))) s: \(text)")
+                return 0
             case "--clean":
                 print(TextCleaner.unavailableReason ?? "Apple Intelligence disponible")
                 let dictionary = await PersonalDictionary.shared.snapshot

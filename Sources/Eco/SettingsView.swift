@@ -67,6 +67,12 @@ struct GeneralSettingsView: View {
                 }
             }
             Section("Modelo de voz") {
+                Picker("Modelo", selection: $settings.voiceModel) {
+                    ForEach(VoiceModel.allCases) { Text($0.label).tag($0) }
+                }
+                Text(settings.voiceModel.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 HStack {
                     Text(model.label)
                     Spacer()
