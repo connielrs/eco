@@ -34,7 +34,7 @@ final class PersonalDictionary: ObservableObject {
     private static let starter: [DictionaryEntry] = [
         DictionaryEntry(word: "Guruvic", soundsLike: "Gurubik, Guru Vic, Gurubic, Guruvik"),
         DictionaryEntry(word: "Curao", soundsLike: "Kurao"),
-        DictionaryEntry(word: "Yutori", soundsLike: ""),
+        DictionaryEntry(word: "Yutori", soundsLike: "Utori, Llutori"),
         DictionaryEntry(word: "Coni", soundsLike: "Connie, Cony, Conni"),
         DictionaryEntry(word: "Innovación Austral", soundsLike: ""),
         DictionaryEntry(word: "Linear", soundsLike: ""),

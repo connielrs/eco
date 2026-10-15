@@ -35,6 +35,17 @@ actor Transcriber {
 
     private var kit: WhisperKit?
     private var loading: Task<WhisperKit, Error>?
+    /// Solo la instancia de los dictados muestra su estado en el menú.
+    private let reportsStatus: Bool
+
+    init(reportsStatus: Bool = true) {
+        self.reportsStatus = reportsStatus
+    }
+
+    /// Libera la memoria del modelo (se usa después de procesar reuniones).
+    func unload() {
+        kit = nil
+    }
 
     /// Frases que Whisper inventa cuando el audio es casi silencio.
     private static let hallucinations = [
@@ -57,9 +68,10 @@ actor Transcriber {
         if let kit { return kit }
         if let loading { return try await loading.value }
 
+        let reportsStatus = self.reportsStatus
         let task = Task { () throws -> WhisperKit in
-            let folder = try await Self.modelFolder()
-            await MainActor.run { ModelStatus.shared.state = .loading }
+            let folder = try await Self.modelFolder(reportsStatus: reportsStatus)
+            if reportsStatus { await MainActor.run { ModelStatus.shared.state = .loading } }
             let config = WhisperKitConfig(
                 modelFolder: folder.path,
                 tokenizerFolder: Paths.models,
@@ -76,12 +88,12 @@ actor Transcriber {
             let kit = try await task.value
             self.kit = kit
             loading = nil
-            await MainActor.run { ModelStatus.shared.state = .ready }
+            if reportsStatus { await MainActor.run { ModelStatus.shared.state = .ready } }
             return kit
         } catch {
             loading = nil
             let message = error.localizedDescription
-            await MainActor.run { ModelStatus.shared.state = .failed(message) }
+            if reportsStatus { await MainActor.run { ModelStatus.shared.state = .failed(message) } }
             throw error
         }
     }
@@ -133,7 +145,7 @@ actor Transcriber {
     }
 
     /// Carpeta del modelo en el Mac; si no está, lo descarga mostrando el progreso.
-    private static func modelFolder() async throws -> URL {
+    private static func modelFolder(reportsStatus: Bool) async throws -> URL {
         let defaultsKey = "modelFolder.\(modelVariant)"
         if let saved = UserDefaults.standard.string(forKey: defaultsKey) {
             let url = URL(fileURLWithPath: saved)
@@ -141,8 +153,9 @@ actor Transcriber {
                 return url
             }
         }
-        await MainActor.run { ModelStatus.shared.state = .downloading(0) }
+        if reportsStatus { await MainActor.run { ModelStatus.shared.state = .downloading(0) } }
         let folder = try await WhisperKit.download(variant: modelVariant, downloadBase: Paths.models) { progress in
+            guard reportsStatus else { return }
             let fraction = progress.fractionCompleted
             Task { @MainActor in ModelStatus.shared.state = .downloading(fraction) }
         }

@@ -16,6 +16,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = buildMenu()
 
         DictationController.shared.start()
+        MeetingRecorder.shared.onFinished = { id in MeetingProcessor.shared.enqueue(id) }
+        MeetingProcessor.shared.resumePending()
         floatingBar.start()
         observeStatus()
         Task { try? await Transcriber.shared.prepare() }
@@ -77,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         meetingItem = item("Grabar reunión", #selector(toggleMeeting), key: "r")
         menu.addItem(meetingItem)
+        menu.addItem(item("Reuniones…", #selector(openMeetings), key: "m"))
         menu.addItem(.separator())
         menu.addItem(item("Historial de dictados…", #selector(openHistory), key: "h"))
         menu.addItem(item("Ajustes…", #selector(openSettings), key: ","))
@@ -104,6 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             do {
                 try recorder.start()
+                openMeetings()
             } catch {
                 let alert = NSAlert()
                 alert.messageText = "No se pudo grabar la reunión"
@@ -113,6 +117,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         refreshStatus()
+    }
+
+    @objc private func openMeetings() {
+        showWindow(id: "meetings", title: "Reuniones", size: NSSize(width: 900, height: 620)) {
+            MeetingsView()
+        }
     }
 
     @objc private func openHistory() {
