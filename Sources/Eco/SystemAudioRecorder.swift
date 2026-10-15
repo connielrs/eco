@@ -2,7 +2,7 @@ import AVFoundation
 import CoreAudio
 
 /// Graba el audio que suena en el Mac (las otras personas de la reunión) con un "process tap" de Core Audio.
-/// No necesita meter un bot en la llamada: escucha la mezcla del sistema, como hace Wispr Flow.
+/// No necesita meter un bot en la llamada: escucha la mezcla de audio del sistema.
 final class SystemAudioRecorder: @unchecked Sendable {
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
